@@ -1,0 +1,13 @@
+{
+ "status_code": 302,
+ "location": "//data.foli.fi/gtfs/v0/20261002-153501/stops",
+ "body": {
+  "host": "data.foli.fi",
+  "gtfspath": "/gtfs/v0",
+  "datasets": [
+   "20261002-153501"
+  ],
+  "latest": "20261002-153501",
+  "go": "//data.foli.fi/gtfs/v0/20261002-153501/stops"
+ }
+}

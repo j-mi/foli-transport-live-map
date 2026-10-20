@@ -1,0 +1,142 @@
+[
+ {
+  "service_id": "1001020100",
+  "trip_id": "00012157__1001020100",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001020100",
+  "shape_id": "1",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001100100",
+  "trip_id": "00012164__1001100100",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001100100",
+  "shape_id": "1",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001040100",
+  "trip_id": "00012165__1001040100",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001040100",
+  "shape_id": "1",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001060110",
+  "trip_id": "00012166__1001060110",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001060110",
+  "shape_id": "1",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001060105",
+  "trip_id": "00012166__1001060105",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001060105",
+  "shape_id": "1",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001090100",
+  "trip_id": "00012167__1001090100",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001090100",
+  "shape_id": "1",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001010100",
+  "trip_id": "00012238__1001010100",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001010100",
+  "shape_id": "2",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001030100",
+  "trip_id": "00012239__1001030100",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001030100",
+  "shape_id": "2",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001070105",
+  "trip_id": "00012240__1001070105",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001070105",
+  "shape_id": "2",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001070110",
+  "trip_id": "00012240__1001070110",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001070110",
+  "shape_id": "2",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001020100",
+  "trip_id": "00012241__1001020100",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001020100",
+  "shape_id": "2",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001060110",
+  "trip_id": "00012242__1001060110",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001060110",
+  "shape_id": "2",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001060165",
+  "trip_id": "00017242__1001060165",
+  "trip_headsign": "Satama",
+  "direction_id": 0,
+  "block_id": "1001060165",
+  "shape_id": "5",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ },
+ {
+  "service_id": "1001010165",
+  "trip_id": "00017282__1001010165",
+  "trip_headsign": "Lentoasema",
+  "direction_id": 1,
+  "block_id": "1001010165",
+  "shape_id": "6",
+  "wheelchair_accessible": 1,
+  "bikes_allowed": 0
+ }
+]

@@ -1,0 +1,233 @@
+[
+ {
+  "route_id": "1",
+  "agency_id": "1",
+  "route_short_name": "1",
+  "route_long_name": "Lentoasema-Keskusta-Satama",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "0bbbef",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "2",
+  "agency_id": "1",
+  "route_short_name": "1A",
+  "route_long_name": "Linja-autoasema-Keskusta-Satama",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "0bbbef",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "3",
+  "agency_id": "1",
+  "route_short_name": "1T",
+  "route_long_name": "Lentoasema-Keskusta, Satama-Keskusta",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "0bbbef",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "4",
+  "agency_id": "1",
+  "route_short_name": "2",
+  "route_long_name": "Kohmo-Keskusta-Nättinummi-Mylly",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "ed6ea7",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "5",
+  "agency_id": "1",
+  "route_short_name": "2Y",
+  "route_long_name": "Kohmo-Keskusta-Länsinummi",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "ed6ea7",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "6",
+  "agency_id": "1",
+  "route_short_name": "3",
+  "route_long_name": "Varissuo-Keskusta-Perno",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "77034e",
+  "route_text_color": "ffffff"
+ },
+ {
+  "route_id": "7",
+  "agency_id": "1",
+  "route_short_name": "3A",
+  "route_long_name": "Varissuo-Keskusta-Raisio",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "77034e",
+  "route_text_color": "ffffff"
+ },
+ {
+  "route_id": "8",
+  "agency_id": "1",
+  "route_short_name": "3T",
+  "route_long_name": "Varissuo-Keskusta",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "77034e",
+  "route_text_color": "ffffff"
+ },
+ {
+  "route_id": "9",
+  "agency_id": "1",
+  "route_short_name": "4",
+  "route_long_name": "Varissuo, Itäkeskus-Skanssi-Keskusta-Halinen",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "afca0b",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "10",
+  "agency_id": "1",
+  "route_short_name": "4T",
+  "route_long_name": "Varissuo, Itäkeskus-Skanssi-Keskusta, Halinen-Keskusta",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "afca0b",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "11",
+  "agency_id": "1",
+  "route_short_name": "5",
+  "route_long_name": "Ylioppilaskylä-Keskusta-Haarla",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "f59c00",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "12",
+  "agency_id": "1",
+  "route_short_name": "5A",
+  "route_long_name": "Ylioppilaskylä-Keskusta-Toijainen-Haarla",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "f59c00",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "13",
+  "agency_id": "1",
+  "route_short_name": "6",
+  "route_long_name": "Lieto-Turku-Naantali",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "009e3d",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "14",
+  "agency_id": "1",
+  "route_short_name": "6A",
+  "route_long_name": "Kaarina-Turku-Naantali",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "009e3d",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "15",
+  "agency_id": "1",
+  "route_short_name": "6T",
+  "route_long_name": "Lieto-Turku, Naantali-Turku",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "009e3d",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "16",
+  "agency_id": "1",
+  "route_short_name": "8",
+  "route_long_name": "Runosmäki-Keskusta-Harittu",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "d20824",
+  "route_text_color": "ffffff"
+ },
+ {
+  "route_id": "17",
+  "agency_id": "1",
+  "route_short_name": "8T",
+  "route_long_name": "Runosmäki-Keskusta, Harittu-Keskusta",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "d20824",
+  "route_text_color": "ffffff"
+ },
+ {
+  "route_id": "18",
+  "agency_id": "1",
+  "route_short_name": "9",
+  "route_long_name": "Uittamo-Keskusta-Härkämäki",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "9c78af",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "19",
+  "agency_id": "1",
+  "route_short_name": "9A",
+  "route_long_name": "Uittamo-Keskusta-Suikkila",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "9c78af",
+  "route_text_color": "000000"
+ },
+ {
+  "route_id": "20",
+  "agency_id": "1",
+  "route_short_name": "10",
+  "route_long_name": "Uittamo-Skanssi-Kupittaa-Länsikeskus-Satama",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "005ea1",
+  "route_text_color": "ffffff"
+ },
+ {
+  "route_id": "65",
+  "agency_id": "1",
+  "route_short_name": "82",
+  "route_long_name": "Tortinmäki-Paattinen-Moisio-Jäkärlä-Keskusta",
+  "route_desc": "",
+  "route_type": 3,
+  "route_url": "",
+  "route_color": "eaab00",
+  "route_text_color": "000000"
+ }
+]

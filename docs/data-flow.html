@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Architecture notes for the Föli live map. Open this file in a browser.
+     Fonts load from Google Fonts; offline it falls back to system fonts. -->
+<title>Föli Live Data Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: one reading column (~68ch) with wide figures up to 1100px; diagrams scroll sideways on phones.
+     Palette and face follow the app itself (frontend/src/styles/tokens.css): Föli yellow, cool greys. */
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --panel: #eef1f5;
+    --line: #d3d9e1;
+    --line-strong: #9aa4b2;
+    --fg: #1d2430;
+    --muted: #556070;
+    --live: #93600a;
+    --live-soft: #fbefd2;
+    --bus: #f0b323;
+    --ok: #17804f;
+    --ok-soft: #dff1e7;
+    --warn: #a64b00;
+    --warn-soft: #fff0dd;
+    --warn-strong: #ffdcb5;
+    --sans: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1319; --surface: #171c24; --panel: #1d242e; --line: #2f3845; --line-strong: #5f6b7a;
+      --fg: #e7ebf0; --muted: #a3adba; --live: #f0b323; --live-soft: #3a2d0c; --bus: #f0b323;
+      --ok: #3fb67b; --ok-soft: #133022; --warn: #f5a524; --warn-soft: #34250f; --warn-strong: #4d3412;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1319; --surface: #171c24; --panel: #1d242e; --line: #2f3845; --line-strong: #5f6b7a;
+    --fg: #e7ebf0; --muted: #a3adba; --live: #f0b323; --live-soft: #3a2d0c; --bus: #f0b323;
+    --ok: #3fb67b; --ok-soft: #133022; --warn: #f5a524; --warn-soft: #34250f; --warn-strong: #4d3412;
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 40px 64px;
+    display: grid;
+    gap: 56px;
+  }
+  header, section { display: grid; gap: 16px; min-width: 0; }
+  .prose { max-width: 68ch; }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+  h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+  h1 { font-size: clamp(30px, 5vw, 42px); line-height: 1.1; }
+  h2 { font-size: 24px; line-height: 1.25; }
+  h3 { font-size: 16px; }
+  p { margin: 0; }
+  .lede { font-size: 18px; color: var(--fg); }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  p code, li code, td code {
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  .paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .path { display: grid; gap: 6px; padding-top: 12px; border-top: 3px solid var(--line-strong); min-width: 0; }
+  .path.live { border-top-color: var(--live); }
+  .path h3 { font-size: 15px; }
+  .path p { font-size: 15px; color: var(--muted); }
+
+  figure { margin: 0; display: grid; gap: 12px; min-width: 0; }
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    overflow-x: auto;
+  }
+  figcaption { font-size: 14px; color: var(--muted); max-width: 80ch; }
+
+  /* --- SVG styling (page CSS, no <style> inside the SVGs) --- */
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--fg); font-family: var(--sans); }
+  .diagram svg text { fill: currentColor; font-size: 12px; }
+  .diagram .h { font-size: 13px; font-weight: 700; }
+  .diagram .t { font-size: 13px; font-weight: 600; }
+  .diagram .s, .diagram .e { font-size: 11px; fill: var(--muted); }
+  .diagram .lt { fill: var(--live); font-weight: 600; }
+  .diagram .mono { font-family: var(--mono); font-size: 11px; }
+  .diagram .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 5px; stroke-linejoin: round; }
+  .diagram .group { fill: var(--panel); stroke: var(--line); }
+  .diagram .box { fill: var(--surface); stroke: var(--line-strong); }
+  .diagram .edge { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+  .diagram .edge.live { stroke: var(--live); stroke-width: 2.5; }
+  .diagram .dashed { stroke-dasharray: 4 3; }
+  .diagram .boundary { stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 2 4; }
+  .diagram .head { fill: var(--muted); }
+  .diagram .head-live { fill: var(--live); }
+  .diagram .track { stroke: var(--line); stroke-width: 2; }
+  .diagram .ok-dot { fill: var(--ok); }
+  .diagram .fail-dot { fill: var(--surface); stroke: var(--warn); stroke-width: 2; }
+  .diagram .hb { fill: var(--live); }
+  .diagram .watch { fill: var(--warn); }
+  .diagram .open-span { stroke: var(--warn); stroke-width: 2; stroke-dasharray: 1 6; stroke-linecap: round; }
+  .diagram .threshold { stroke: var(--fg); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0.6; }
+  .diagram .bar-ok { fill: var(--ok-soft); stroke: var(--ok); }
+  .diagram .bar-warn { fill: var(--warn-soft); stroke: var(--warn); }
+  .diagram .bar-strong { fill: var(--warn-strong); stroke: var(--warn); }
+  .diagram .mapbg { fill: var(--panel); stroke: var(--line); }
+  .diagram .road { stroke: var(--surface); stroke-width: 7; stroke-linecap: round; fill: none; }
+  .diagram .bus { fill: var(--bus); stroke: var(--fg); stroke-width: 1.5; }
+  .diagram .ghost { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 3; }
+  .diagram .popup { fill: var(--surface); stroke: var(--line-strong); }
+  .diagram .rowhl { fill: var(--live-soft); }
+  .diagram .gone { fill: var(--muted); }
+  .diagram .strike { stroke: var(--muted); stroke-width: 1; }
+  .diagram .cover { stroke: var(--surface); stroke-width: 2; }
+
+  /* --- Tables --- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--panel); }
+  td.when { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+  td.code { color: var(--muted); }
+  td .say { font-weight: 600; }
+  .tone { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+  .tone.ok { background: var(--ok); }
+  .tone.warn { background: var(--warn); }
+  .tone.none { background: var(--line-strong); }
+
+  .points { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 72ch; }
+  .note {
+    border: 1px solid var(--warn);
+    background: var(--warn-soft);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: grid;
+    gap: 8px;
+    max-width: 80ch;
+  }
+  .note h3 { font-size: 15px; }
+  .note p { font-size: 15px; }
+
+  .codemap { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px 32px; margin: 0; }
+  .codemap div { display: grid; gap: 2px; padding-block: 8px; border-bottom: 1px solid var(--line); min-width: 0; }
+  .codemap dt { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .codemap dd { margin: 0; font-size: 14px; color: var(--muted); }
+  footer { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <p class="eyebrow">Föli live map · architecture notes</p>
+    <h1>How data moves</h1>
+    <p class="lede prose">Three kinds of data take three different paths. Live bus positions go from Föli through the backend’s memory to the map every 5 seconds and are never stored. Timetable data is cached in memory. Only your favourites and a copy of the stops live in the database.</p>
+  </header>
+
+  <!-- 1. Data flow -->
+  <section aria-labelledby="flow">
+    <h2 id="flow">Who talks to whom</h2>
+    <figure>
+      <div class="diagram">
+        <svg viewBox="0 0 1040 580" role="img" aria-label="Data flow. Föli feeds the backend through one client. Live bus positions go from the poller through the broadcaster over an SSE stream to the browser and into the map, without touching the database. Timetable data is cached in memory and stops are copied into PostGIS. Favourites and nearby-stop queries read and write PostGIS.">
+          <defs>
+            <marker id="f1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+            <marker id="f1-arrow-live" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="head-live" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+
+          <!-- Föli -->
+          <text class="h" x="78" y="42" text-anchor="middle">data.foli.fi</text>
+          <rect class="box" x="16" y="60" width="124" height="50" rx="6"/>
+          <text class="t" x="78" y="81" text-anchor="middle">SIRI VM</text>
+          <text class="s" x="78" y="97" text-anchor="middle">every bus, one file</text>
+          <rect class="box" x="16" y="170" width="124" height="50" rx="6"/>
+          <text class="t" x="78" y="191" text-anchor="middle">GTFS</text>
+          <text class="s" x="78" y="207" text-anchor="middle">stops, lines, shapes</text>
+          <rect class="box" x="16" y="270" width="124" height="50" rx="6"/>
+          <text class="t" x="78" y="291" text-anchor="middle">SIRI SM</text>
+          <text class="s" x="78" y="307" text-anchor="middle">departures per stop</text>
+
+
+          <!-- Backend -->
+          <rect class="group" x="196" y="20" width="432" height="420" rx="10"/>
+          <text class="h" x="212" y="42">Backend · FastAPI</text>
+
+          <!-- Föli -> client edges, drawn after the backend panel so their labels stay on top -->
+          <line class="edge live" x1="140" y1="85" x2="211" y2="85" marker-end="url(#f1-arrow-live)"/>
+          <text class="e lt halo" x="170" y="77" text-anchor="middle">every 5 s</text>
+          <line class="edge" x1="140" y1="195" x2="211" y2="195" marker-end="url(#f1-arrow)"/>
+          <text class="e halo" x="170" y="187" text-anchor="middle">start + 6 h</text>
+          <line class="edge" x1="140" y1="295" x2="211" y2="295" marker-end="url(#f1-arrow)"/>
+          <text class="e halo" x="170" y="287" text-anchor="middle">on demand</text>
+
+          <rect class="box" x="212" y="60" width="96" height="360" rx="6"/>
+          <text class="t" x="260" y="236" text-anchor="middle">Föli client</text>
+          <text class="s" x="260" y="254" text-anchor="middle">timeouts</text>
+          <text class="s" x="260" y="268" text-anchor="middle">retries</text>
+          <text class="s" x="260" y="282" text-anchor="middle">breaker</text>
+
+          <line class="edge live" x1="308" y1="85" x2="335" y2="85" marker-end="url(#f1-arrow-live)"/>
+          <rect class="box" x="336" y="60" width="118" height="50" rx="6"/>
+          <text class="t" x="395" y="81" text-anchor="middle">Poller</text>
+          <text class="s" x="395" y="97" text-anchor="middle">parse → snapshot</text>
+
+          <line class="edge live" x1="454" y1="85" x2="485" y2="85" marker-end="url(#f1-arrow-live)"/>
+          <rect class="box" x="486" y="60" width="126" height="50" rx="6"/>
+          <text class="t" x="549" y="81" text-anchor="middle">Broadcaster</text>
+          <text class="s" x="549" y="97" text-anchor="middle">queue per browser</text>
+          <text class="e lt" x="474" y="128" text-anchor="middle">snapshot in memory only</text>
+
+          <line class="edge dashed" x1="356" y1="169" x2="356" y2="112" marker-end="url(#f1-arrow)"/>
+          <text class="e" x="362" y="152">route_id</text>
+
+          <line class="edge" x1="308" y1="195" x2="335" y2="195" marker-end="url(#f1-arrow)"/>
+          <rect class="box" x="336" y="170" width="118" height="50" rx="6"/>
+          <text class="t" x="395" y="191" text-anchor="middle">GTFS cache</text>
+          <text class="s" x="395" y="207" text-anchor="middle">in memory</text>
+          <line class="edge" x1="454" y1="195" x2="485" y2="195" marker-end="url(#f1-arrow)"/>
+          <rect class="box" x="486" y="170" width="126" height="50" rx="6"/>
+          <text class="t" x="549" y="191" text-anchor="middle">lines · stops</text>
+          <text class="s" x="549" y="207" text-anchor="middle">route shapes</text>
+
+          <line class="edge" x1="308" y1="295" x2="485" y2="295" marker-end="url(#f1-arrow)"/>
+          <rect class="box" x="486" y="270" width="126" height="50" rx="6"/>
+          <text class="t" x="549" y="291" text-anchor="middle">departures</text>
+          <text class="s" x="549" y="307" text-anchor="middle">cached 15 s</text>
+
+          <rect class="box" x="486" y="370" width="126" height="50" rx="6"/>
+          <text class="t" x="549" y="391" text-anchor="middle">favourites</text>
+          <text class="s" x="549" y="407" text-anchor="middle">stops nearby</text>
+
+          <!-- Stop copy into PostGIS: passes under the departures edge -->
+          <line class="edge" x1="395" y1="220" x2="395" y2="289"/>
+          <line class="edge" x1="395" y1="301" x2="395" y2="479" marker-end="url(#f1-arrow)"/>
+          <text class="e" x="403" y="372">copy stops</text>
+          <text class="e" x="403" y="386">per dataset</text>
+
+          <line class="edge" x1="549" y1="421" x2="549" y2="479" marker-start="url(#f1-arrow)" marker-end="url(#f1-arrow)"/>
+          <text class="e" x="557" y="455">SQL</text>
+
+          <!-- Database -->
+          <rect class="box" x="336" y="480" width="276" height="80" rx="6"/>
+          <text class="t" x="474" y="506" text-anchor="middle">PostgreSQL + PostGIS</text>
+          <text class="s mono" x="474" y="526" text-anchor="middle">favourite_stops · favourite_lines</text>
+          <text class="s" x="474" y="544" text-anchor="middle">stops, with a spatial index</text>
+
+          <!-- nginx boundary -->
+          <line class="boundary" x1="672" y1="24" x2="672" y2="436"/>
+          <text class="s" x="672" y="14" text-anchor="middle">nginx · /api</text>
+
+          <line class="edge live" x1="612" y1="85" x2="731" y2="85" marker-end="url(#f1-arrow-live)"/>
+          <text class="e lt halo" x="672" y="77" text-anchor="middle">SSE stream</text>
+          <text class="e halo" x="672" y="101" text-anchor="middle">+ heartbeat 15 s</text>
+          <line class="edge" x1="612" y1="195" x2="731" y2="195" marker-end="url(#f1-arrow)"/>
+          <text class="e halo" x="672" y="187" text-anchor="middle">GET</text>
+          <line class="edge" x1="612" y1="295" x2="731" y2="295" marker-end="url(#f1-arrow)"/>
+          <text class="e halo" x="672" y="287" text-anchor="middle">GET</text>
+          <line class="edge" x1="613" y1="395" x2="731" y2="395" marker-start="url(#f1-arrow)" marker-end="url(#f1-arrow)"/>
+          <text class="e halo" x="672" y="387" text-anchor="middle">PUT · DELETE</text>
+          <text class="e halo" x="672" y="411" text-anchor="middle">GET</text>
+
+          <!-- Browser -->
+          <rect class="group" x="716" y="20" width="308" height="420" rx="10"/>
+          <text class="h" x="732" y="42">Browser · React</text>
+
+          <rect class="box" x="732" y="60" width="276" height="50" rx="6"/>
+          <text class="t" x="870" y="81" text-anchor="middle">Stream client</text>
+          <text class="s" x="870" y="97" text-anchor="middle">EventSource · fallback: poll /vehicles</text>
+
+          <line class="edge live" x1="943" y1="110" x2="943" y2="169" marker-end="url(#f1-arrow-live)"/>
+          <text class="e lt" x="951" y="136">setData,</text>
+          <text class="e lt" x="951" y="150">skips React</text>
+
+          <rect class="box" x="732" y="170" width="130" height="250" rx="6"/>
+          <text class="t" x="797" y="192" text-anchor="middle">TanStack Query</text>
+          <text class="s" x="797" y="208" text-anchor="middle">cached REST data</text>
+          <text class="s" x="797" y="250" text-anchor="middle">lines, stops</text>
+          <text class="s" x="797" y="266" text-anchor="middle">route shapes</text>
+          <text class="s" x="797" y="282" text-anchor="middle">favourites</text>
+          <text class="s" x="797" y="298" text-anchor="middle">nearby</text>
+          <text class="s" x="797" y="314" text-anchor="middle">departures</text>
+
+          <line class="edge" x1="862" y1="274" x2="877" y2="274" marker-end="url(#f1-arrow)"/>
+          <rect class="box" x="878" y="170" width="130" height="250" rx="6"/>
+          <text class="t" x="943" y="192" text-anchor="middle">Map</text>
+          <text class="s" x="943" y="208" text-anchor="middle">MapLibre · WebGL</text>
+          <text class="s lt" x="943" y="250" text-anchor="middle">live buses</text>
+          <text class="s" x="943" y="266" text-anchor="middle">stop clusters</text>
+          <text class="s" x="943" y="282" text-anchor="middle">route line</text>
+          <text class="s" x="943" y="298" text-anchor="middle">popups</text>
+        </svg>
+      </div>
+      <figcaption>Amber is the live bus path. It never touches the database. If the stream breaks, the stream client polls <code>GET /vehicles</code> every 5 s instead, which returns the same in-memory snapshot. All browser traffic passes nginx, which serves the app and forwards <code>/api</code> to the backend without buffering the stream.</figcaption>
+    </figure>
+
+    <div class="paths">
+      <div class="path live">
+        <h3>Live buses</h3>
+        <p>One request to Föli every 5 s, however many browsers are open. The newest snapshot sits in memory and is pushed to every open map over Server-Sent Events.</p>
+      </div>
+      <div class="path">
+        <h3>Timetable (GTFS)</h3>
+        <p>Loaded at start and re-checked every 6 h. Served from memory. When a new dataset appears, the stops are copied into PostGIS for “stops near here”.</p>
+      </div>
+      <div class="path">
+        <h3>Your data</h3>
+        <p>Favourites and nearby searches are SQL against PostGIS. Departures are fetched from Föli when you open a stop and shared by everyone for 15 s.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Waiting and freshness -->
+  <section aria-labelledby="wait">
+    <h2 id="wait">When the app decides data is missing or old</h2>
+    <p class="prose">Every layer has a fixed limit. When one is reached, the status bar changes. The 20-second rule is the safety net: it is measured from <code>fetched_at</code>, the moment the backend last got fresh data from Föli, so it catches every kind of failure, including ones that take the other rules longer to name.</p>
+
+    <figure>
+      <div class="diagram">
+        <svg viewBox="0 0 1040 400" role="img" aria-label="Two timelines. If Föli stops answering, the data counts as old after 20 seconds and the status adds Föli is not responding after five failed polls, about 25 seconds. If our own server stops, the stream goes silent, the data counts as old after 20 seconds, and after 35 seconds without a heartbeat the app shows Reconnecting and falls back to polling.">
+          <!-- legend -->
+          <circle class="ok-dot" cx="660" cy="26" r="5"/>
+          <text class="s" x="670" y="30">poll ok</text>
+          <circle class="fail-dot" cx="730" cy="26" r="5"/>
+          <text class="s" x="740" y="30">failed</text>
+          <polygon class="hb" points="800,21 805,26 800,31 795,26"/>
+          <text class="s" x="810" y="30">heartbeat</text>
+          <rect class="watch" x="882" y="22" width="8" height="8"/>
+          <text class="s" x="896" y="30">silence detected</text>
+
+          <!-- thresholds -->
+          <line class="threshold" x1="400" y1="46" x2="400" y2="352"/>
+          <line class="threshold" x1="580" y1="236" x2="580" y2="352"/>
+
+          <!-- Scenario A -->
+          <text class="t" x="16" y="30">A. Föli stops answering</text>
+          <text class="s" x="148" y="74" text-anchor="end">server → Föli</text>
+          <line class="track" x1="160" y1="70" x2="1000" y2="70"/>
+          <circle class="ok-dot" cx="160" cy="70" r="5"/>
+          <circle class="fail-dot" cx="220" cy="70" r="5"/>
+          <circle class="fail-dot" cx="280" cy="70" r="5"/>
+          <circle class="fail-dot" cx="340" cy="70" r="5"/>
+          <circle class="fail-dot" cx="400" cy="70" r="5"/>
+          <circle class="fail-dot" cx="460" cy="70" r="5"/>
+          <line class="open-span" x1="470" y1="70" x2="1000" y2="70"/>
+          <circle class="fail-dot" cx="820" cy="70" r="5"/>
+          <text class="e" x="466" y="56">5th failed poll: circuit opens</text>
+          <text class="e" x="820" y="56" text-anchor="middle">probe every 30 s</text>
+
+          <text class="s" x="148" y="109" text-anchor="end">stream</text>
+          <line class="track" x1="160" y1="105" x2="1000" y2="105"/>
+          <polygon class="hb" points="340,100 345,105 340,110 335,105"/>
+          <polygon class="hb" points="520,100 525,105 520,110 515,105"/>
+          <polygon class="hb" points="700,100 705,105 700,110 695,105"/>
+          <polygon class="hb" points="880,100 885,105 880,110 875,105"/>
+
+          <text class="s" x="148" y="145" text-anchor="end">what you see</text>
+          <rect class="bar-ok" x="160" y="128" width="240" height="26" rx="4"/>
+          <text x="170" y="145">Live · updated N s ago</text>
+          <rect class="bar-warn" x="400" y="128" width="600" height="26" rx="4"/>
+          <text x="410" y="145">Live data unavailable · showing positions from N s ago</text>
+          <line class="threshold" x1="460" y1="154" x2="460" y2="166"/>
+          <text class="e" x="466" y="172">from here also “Föli is not responding”</text>
+
+          <!-- Scenario B -->
+          <text class="t" x="16" y="216">B. Our server stops, the connection goes silent</text>
+          <text class="s" x="148" y="264" text-anchor="end">stream</text>
+          <line class="track" x1="160" y1="260" x2="1000" y2="260"/>
+          <circle class="ok-dot" cx="160" cy="260" r="5"/>
+          <rect class="watch" x="576" y="256" width="8" height="8"/>
+          <circle class="fail-dot" cx="592" cy="260" r="5"/>
+          <circle class="fail-dot" cx="616" cy="260" r="5"/>
+          <text class="e" x="574" y="246" text-anchor="end">35 s with no heartbeat: closed</text>
+          <text class="e" x="600" y="246">reopen after 1 s, 2 s</text>
+
+          <text class="s" x="148" y="299" text-anchor="end">fallback polls</text>
+          <line class="track" x1="160" y1="295" x2="1000" y2="295"/>
+          <circle class="fail-dot" cx="616" cy="295" r="5"/>
+          <circle class="fail-dot" cx="676" cy="295" r="5"/>
+          <circle class="fail-dot" cx="736" cy="295" r="5"/>
+          <circle class="fail-dot" cx="796" cy="295" r="5"/>
+          <circle class="fail-dot" cx="856" cy="295" r="5"/>
+          <circle class="fail-dot" cx="916" cy="295" r="5"/>
+          <circle class="fail-dot" cx="976" cy="295" r="5"/>
+          <text class="e" x="622" y="284">3 errors: poll /vehicles every 5 s</text>
+
+          <text class="s" x="148" y="335" text-anchor="end">what you see</text>
+          <rect class="bar-ok" x="160" y="318" width="240" height="26" rx="4"/>
+          <text x="170" y="335">Live · updated N s ago</text>
+          <rect class="bar-warn" x="400" y="318" width="180" height="26" rx="4"/>
+          <text x="410" y="335">Live data unavailable</text>
+          <rect class="bar-strong" x="580" y="318" width="420" height="26" rx="4"/>
+          <text x="590" y="335">Reconnecting… · showing positions from N s ago</text>
+
+          <!-- axis -->
+          <line class="track" x1="160" y1="360" x2="1000" y2="360"/>
+          <text class="s" x="16" y="376">time since last data</text>
+          <g class="s">
+            <line class="track" x1="160" y1="356" x2="160" y2="364"/><text class="s" x="160" y="376" text-anchor="middle">0 s</text>
+            <line class="track" x1="280" y1="356" x2="280" y2="364"/><text class="s" x="280" y="376" text-anchor="middle">10 s</text>
+            <line class="track" x1="400" y1="356" x2="400" y2="364"/><text class="s" x="400" y="376" text-anchor="middle">20 s</text>
+            <line class="track" x1="520" y1="356" x2="520" y2="364"/><text class="s" x="520" y="376" text-anchor="middle">30 s</text>
+            <line class="track" x1="640" y1="356" x2="640" y2="364"/><text class="s" x="640" y="376" text-anchor="middle">40 s</text>
+            <line class="track" x1="760" y1="356" x2="760" y2="364"/><text class="s" x="760" y="376" text-anchor="middle">50 s</text>
+            <line class="track" x1="880" y1="356" x2="880" y2="364"/><text class="s" x="880" y="376" text-anchor="middle">60 s</text>
+            <line class="track" x1="1000" y1="356" x2="1000" y2="364"/><text class="s" x="1000" y="376" text-anchor="middle">70 s</text>
+          </g>
+          <text class="t" x="400" y="394" text-anchor="middle">old after 20 s</text>
+          <text class="t" x="580" y="394" text-anchor="middle">dead after 35 s of silence</text>
+        </svg>
+      </div>
+      <figcaption>In A the stream is healthy, so heartbeats keep arriving and only the data ages. In B nothing arrives at all, which is how the browser can tell the two apart. When nginx closes the stream cleanly (backend down behind compose), “Reconnecting…” appears at once instead of waiting for the 35 s watchdog. Timings in A assume Föli refuses connections; if every request hangs until its timeout instead, each poll can take about 40 s and “Föli is not responding” can take up to about 3½ minutes. The 20 s rule still fires on time.</figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Situation</th><th>What you see</th><th>Limit</th><th>Where</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A request to Föli is slow or fails</td>
+            <td><span class="tone none"></span>Nothing yet</td>
+            <td class="when">3 s connect · 10 s read<br>3 tries, 0.5 s then 1 s apart (±50 %)</td>
+            <td class="code"><code>foli_client.py</code></td>
+          </tr>
+          <tr>
+            <td>One poll fails (after its 3 tries)</td>
+            <td><span class="tone none"></span>Nothing. Status is kept on purpose, so one dropped request doesn’t flash an error in every browser</td>
+            <td class="when">next poll in 5 s</td>
+            <td class="code"><code>poller.py</code></td>
+          </tr>
+          <tr>
+            <td>5 polls in a row fail</td>
+            <td><span class="tone warn"></span><span class="say">“Föli is not responding.”</span></td>
+            <td class="when">≈ 25 s<br>then 1 probe per 30 s</td>
+            <td class="code"><code>CircuitBreaker</code> in <code>foli_client.py</code></td>
+          </tr>
+          <tr>
+            <td>Föli answers <code>PENDING</code> or <code>NO_SIRI_DATA</code></td>
+            <td><span class="tone warn"></span><span class="say">“Föli is starting up…”</span> or <span class="say">“…not publishing live data right now.”</span> Last positions stay on the map</td>
+            <td class="when">immediately</td>
+            <td class="code"><code>siri_parser.py</code>, <code>poller.py</code></td>
+          </tr>
+          <tr>
+            <td>Data is older than 20 s, for any reason</td>
+            <td><span class="tone warn"></span><span class="say">“Live data unavailable · showing positions from N s ago”</span>, buses turn grey</td>
+            <td class="when">20 s</td>
+            <td class="code"><code>STALE_AFTER_MS</code> in <code>vehicleStream.ts</code></td>
+          </tr>
+          <tr>
+            <td>The stream sends nothing, not even a heartbeat</td>
+            <td><span class="tone warn"></span><span class="say">“Reconnecting…”</span></td>
+            <td class="when">35 s<br>heartbeat every 15 s</td>
+            <td class="code"><code>SSE_SILENCE_MS</code>, <code>HEARTBEAT_S</code></td>
+          </tr>
+          <tr>
+            <td>The stream fails 3 times in a row</td>
+            <td><span class="tone ok"></span><span class="say">“Live (polling)”</span>, or “Reconnecting…” while polls also fail</td>
+            <td class="when">poll every 5 s<br>stream retried after 60 s</td>
+            <td class="code"><code>vehicleStream.ts</code></td>
+          </tr>
+          <tr>
+            <td>Timetable data not loaded yet (e.g. Föli down at startup)</td>
+            <td><span class="tone warn"></span><span class="say">“Could not load lines. Timetable data is still loading from Föli.”</span></td>
+            <td class="when">server retries every 60 s<br>browser retries 3 times</td>
+            <td class="code"><code>gtfs_cache.py</code>, <code>main.tsx</code></td>
+          </tr>
+          <tr>
+            <td>A bus in the feed has no position</td>
+            <td><span class="tone none"></span>That bus is not drawn</td>
+            <td class="when">every snapshot</td>
+            <td class="code"><code>parse_vehicle</code> in <code>siri_parser.py</code></td>
+          </tr>
+          <tr>
+            <td>Departures for an open stop</td>
+            <td><span class="tone warn"></span><span class="say">“Departures are unavailable right now.”</span> on failure</td>
+            <td class="when">server cache 15 s<br>popup refresh 30 s</td>
+            <td class="code"><code>stops.py</code>, <code>queries.ts</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3. One bus -->
+  <section aria-labelledby="bus">
+    <h2 id="bus">How one bus is tracked</h2>
+    <p class="prose">Each bus is identified by Föli’s <code>vehicleref</code>. The backend copies it to <code>id</code>, and the map feature carries it as <code>properties.id</code>. There are no per-bus update messages, though: every 5 s the backend sends the complete list, and the map replaces all the points at once. The id matters where something has to follow one bus, which is the popup.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Föli sends</th><th>Backend keeps</th><th>Map feature</th><th>Shows up as</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>vehicleref: "550022"</code></td><td><code>id: "550022"</code></td><td><code>properties.id</code></td><td>Which bus a click or popup refers to</td></tr>
+          <tr><td><code>publishedlinename: "10"</code></td><td><code>line: "10"</code></td><td><code>properties.line</code></td><td>The number on the dot</td></tr>
+          <tr><td><code>__routeref: "20"</code></td><td><code>route_id: "20"</code></td><td><code>properties.route_id</code>, <code>known</code></td><td>Blue when line 10 is selected; grey if the line isn’t in the timetable</td></tr>
+          <tr><td><code>latitude: 60.46848</code><br><code>longitude: 22.3062</code></td><td><code>lat</code>, <code>lon</code></td><td><code>coordinates: [22.3062, 60.46848]</code></td><td>Position. GeoJSON puts longitude first</td></tr>
+          <tr><td><code>delay: "PT151S"</code></td><td><code>delay_s: 151</code></td><td>popup</td><td>“3 min late”</td></tr>
+          <tr><td><code>recordedattime: 1791113452</code></td><td><code>recorded_at: 11:30:52Z</code></td><td>popup</td><td>“Position updated N s ago”</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure>
+      <div class="diagram">
+        <svg viewBox="0 0 1040 290" role="img" aria-label="Two consecutive snapshots. In the second, bus 550022 has new coordinates and bus 221333 is missing. The map replaces every point: 550022 jumps to its new position, 221333 disappears, and the open popup follows 550022 by its id.">
+          <defs>
+            <marker id="f3-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+            <marker id="f3-arrow-live" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path class="head-live" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+
+          <!-- Snapshot 1 -->
+          <rect class="box" x="16" y="40" width="280" height="140" rx="8"/>
+          <text class="t" x="30" y="64">snapshot #1041</text>
+          <text class="s" x="282" y="64" text-anchor="end">11:30:53Z</text>
+          <text class="mono" x="30" y="96">550022  10  60.46848, 22.30620</text>
+          <text class="mono" x="30" y="122">80075   4   60.44988, 22.26773</text>
+          <text class="mono" x="30" y="148">221333  3   60.44927, 22.20473</text>
+          <text class="s" x="30" y="170">id · line · lat, lon</text>
+
+          <line class="edge" x1="296" y1="110" x2="315" y2="110" marker-end="url(#f3-arrow)"/>
+
+          <!-- Snapshot 2 -->
+          <rect class="box" x="316" y="40" width="280" height="140" rx="8"/>
+          <text class="t" x="330" y="64">snapshot #1042</text>
+          <text class="s" x="582" y="64" text-anchor="end">5 s later · example</text>
+          <rect class="rowhl" x="324" y="82" width="264" height="20" rx="3"/>
+          <text class="mono" x="330" y="96">550022  10  60.46901, 22.30580</text>
+          <text class="mono" x="330" y="122">80075   4   60.44960, 22.26810</text>
+          <text class="mono gone" x="330" y="148">221333  not in the feed</text>
+          <line class="strike" x1="330" y1="144" x2="377" y2="144"/>
+          <text class="s" x="330" y="170">the full list again, no “changes”</text>
+
+          <!-- setData -->
+          <line class="edge live" x1="596" y1="110" x2="675" y2="110" marker-end="url(#f3-arrow-live)"/>
+          <text class="e lt" x="636" y="98" text-anchor="middle">setData:</text>
+          <text class="e lt" x="636" y="128" text-anchor="middle">replace all</text>
+
+          <!-- Map -->
+          <rect class="mapbg" x="676" y="40" width="348" height="230" rx="8"/>
+          <path class="road" d="M690,232 C760,200 800,170 860,160 S960,120 1010,70"/>
+          <path class="road" d="M700,90 L1000,240"/>
+          <text class="s" x="690" y="60">map</text>
+
+          <!-- 550022: old ghost, new position -->
+          <circle class="ghost" cx="800" cy="190" r="8"/>
+          <line class="edge dashed" x1="808" y1="185" x2="843" y2="164" marker-end="url(#f3-arrow)"/>
+          <circle class="bus" cx="852" cy="160" r="9"/>
+          <text class="s" x="770" y="214" text-anchor="middle">old spot</text>
+
+          <!-- 80075 -->
+          <circle class="bus" cx="940" cy="205" r="9"/>
+          <text class="s" x="956" y="209">80075</text>
+
+          <!-- 221333 removed -->
+          <circle class="ghost" cx="740" cy="120" r="8"/>
+          <line class="strike" x1="732" y1="112" x2="748" y2="128"/>
+          <text class="s" x="740" y="146" text-anchor="middle">221333 gone</text>
+
+          <!-- popup follows 550022 -->
+          <rect class="popup" x="790" y="60" width="222" height="54" rx="6"/>
+          <polygon class="popup" points="842,114 852,114 852,148"/>
+          <line class="cover" x1="843" y1="113" x2="851" y2="113"/>
+          <text class="t" x="802" y="81">Line 10 · bus 550022</text>
+          <text class="s" x="802" y="100">looks up its id in each snapshot</text>
+        </svg>
+      </div>
+      <figcaption>The first snapshot is real data from the recorded sample; the second is an example. The map doesn’t compare snapshots. A bus that moved jumps to its new spot (no animation between updates), and a bus missing from the list simply vanishes. An open popup keeps the last known position and says “Föli no longer reports this bus.”</figcaption>
+    </figure>
+
+    <div class="note">
+      <h3>Not handled: one bus with an old position</h3>
+      <p>The status bar’s age is for the feed as a whole, not per bus. In the recorded sample, bus <code>202095</code> (line 82) was in Föli’s 11:30 UTC feed with a position recorded at 01:16 UTC, about 10 hours earlier. Its <code>validuntiltime</code> (recorded time + 10 min) had long passed. The app draws it like any other bus; only its popup reveals the age. The feed includes <code>validuntiltime</code> for every bus, so the data to detect this case is available.</p>
+    </div>
+  </section>
+
+  <!-- 4. Code map -->
+  <section aria-labelledby="code">
+    <h2 id="code">Where this lives in the code</h2>
+    <dl class="codemap">
+      <div><dt>backend/app/integrations/foli_client.py</dt><dd>Every call to Föli: timeouts, retries with jitter, circuit breakers</dd></div>
+      <div><dt>backend/app/integrations/siri_parser.py</dt><dd><code>vehicleref</code> → <code>id</code>, delay sign, buses without a position skipped</dd></div>
+      <div><dt>backend/app/realtime/poller.py</dt><dd>The 5 s loop, last good snapshot, when status becomes DOWN</dd></div>
+      <div><dt>backend/app/realtime/broadcaster.py</dt><dd>One small queue per browser; slow browsers never block others</dd></div>
+      <div><dt>backend/app/api/vehicles.py</dt><dd>The SSE stream: <code>vehicles</code>, <code>status</code> and <code>heartbeat</code> events</dd></div>
+      <div><dt>frontend/src/realtime/vehicleStream.ts</dt><dd>20 s old-data rule, 35 s watchdog, polling fallback</dd></div>
+      <div><dt>frontend/src/map/layers/VehiclesLayer.tsx</dt><dd>Pushes each snapshot into MapLibre with <code>setData</code></dd></div>
+      <div><dt>frontend/src/map/popups/VehiclePopup.tsx</dt><dd>Follows one bus by its id across snapshots</dd></div>
+    </dl>
+  </section>
+
+  <footer>Limits are the values in the current code. Sample bus data comes from <code>backend/tests/fixtures/siri_vm.json</code>, recorded from Föli on 4 October 2026.</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+ "host": "data.foli.fi",
+ "gtfspath": "/gtfs/v0",
+ "datasets": [
+  "20261002-153501"
+ ],
+ "latest": "20261002-153501",
+ "success": false,
+ "subpaths": [
+  "agency",
+  "stops",
+  "routes",
+  "trips",
+  "trip_notes",
+  "translations",
+  "stop_times",
+  "calendar",
+  "calendar_dates",
+  "shapes"
+ ]
+}

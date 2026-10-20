@@ -1,0 +1,59 @@
+# Full stack: docker compose up --build  ->  http://localhost:8080
+# Database only (for local development): docker compose up db
+name: foli-live
+
+x-db-env: &db-env
+  POSTGRES_USER: ${POSTGRES_USER:-transport}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+  POSTGRES_DB: ${POSTGRES_DB:-transport}
+
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    # The official PostGIS image is published for amd64 only. Docker Desktop on Apple Silicon
+    # runs it under emulation; pinning the platform avoids a "no matching manifest" error.
+    platform: linux/amd64
+    environment:
+      <<: *db-env
+      APP_DB_USER: ${APP_DB_USER:-transport_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-change_me_app}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init/20-app-role.sh:/docker-entrypoint-initdb.d/20-app-role.sh:ro
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:-transport_app}:${APP_DB_PASSWORD:-change_me_app}@db:5432/${POSTGRES_DB:-transport}
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-transport}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-transport}
+      FOLI_BASE_URL: ${FOLI_BASE_URL:-https://data.foli.fi}
+      POLL_INTERVAL_S: ${POLL_INTERVAL_S:-5}
+      GTFS_REFRESH_HOURS: ${GTFS_REFRESH_HOURS:-6}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_MAP_STYLE_URL: ${VITE_MAP_STYLE_URL:-}
+        VITE_MAP_STYLE_URL_DARK: ${VITE_MAP_STYLE_URL_DARK:-}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
